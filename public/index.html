@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayTime Tracker</title>
+    <meta name="description" content="Track all your games, playtime, and session history in one premium dashboard.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Custom Titlebar -->
+    <div class="titlebar" id="titlebar">
+        <div class="titlebar-drag">
+            <div class="titlebar-logo-icon"></div>
+            <span class="titlebar-title">PlayTime Tracker</span>
+        </div>
+        <div class="titlebar-controls">
+            <button id="btn-minimize" title="Minimize">&#8722;</button>
+            <button id="btn-maximize" title="Maximize">&#9633;</button>
+            <button id="btn-close" title="Close">&#215;</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass">
+            <div class="logo">
+                <div class="logo-icon"></div>
+                <h2>PlayTime</h2>
+            </div>
+            <nav>
+                <button class="nav-btn active" data-tab="dashboard" id="nav-dashboard">&#9632; Dashboard</button>
+                <button class="nav-btn" data-tab="library" id="nav-library">&#9670; Library</button>
+                <button class="nav-btn" data-tab="sessions" id="nav-sessions">&#9776; History</button>
+                <button class="nav-btn" data-tab="settings" id="nav-settings">&#9881; Settings</button>
+            </nav>
+            <div class="sidebar-bottom">
+                <button id="addGameBtn" class="btn-primary full-width">+ Add Game</button>
+                <button id="scanGamesBtn" class="btn-secondary full-width" style="margin-top:8px;">&#x1F50D; Scan for Games</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <!-- Top Header -->
+            <header class="top-header glass">
+                <div class="active-session-info" id="activeSessionBar">
+                    <div class="pulsing-dot" id="activeDot"></div>
+                    <div class="active-text-group">
+                        <span id="activeGameText">No active game</span>
+                        <span id="activeElapsedText" class="elapsed-time"></span>
+                        <span id="activeAfkText" class="afk-indicator"></span>
+                    </div>
+                    <button id="afkToggleBtn" class="afk-toggle-btn" title="Toggle AFK (Ctrl+Shift+F9)">⏸ AFK</button>
+                </div>
+                <div class="header-stats">
+                    <div class="header-stat">
+                        <span class="stat-label">Total Playtime</span>
+                        <span class="stat-value" id="totalPlaytimeVal">0h 0m</span>
+                    </div>
+                    <div class="header-stat">
+                        <span class="stat-label">Games Tracked</span>
+                        <span class="stat-value" id="trackedCount">0</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Tab -->
+            <section id="tab-dashboard" class="tab-content active">
+                <div class="chart-container glass">
+                    <div class="chart-header">
+                        <h3>Playtime Last 7 Days</h3>
+                        <span class="chart-subtitle" id="weeklyTotalLabel">–</span>
+                    </div>
+                    <canvas id="playtimeChart"></canvas>
+                </div>
+                <div class="top-games-section">
+                    <div class="top-games-header">
+                        <h3 class="section-title">Top Games</h3>
+                        <div class="sort-toggle" id="dashSortToggle" title="Switch sort order">
+                            <button class="sort-btn active" data-sort="playtime" id="sortByPlaytime">⏱ Most Played</button>
+                            <button class="sort-btn" data-sort="recent" id="sortByRecent">🕐 Recently Played</button>
+                        </div>
+                    </div>
+                    <div id="topGamesList" class="top-games-list"></div>
+                </div>
+            </section>
+
+            <!-- Library Tab -->
+            <section id="tab-library" class="tab-content">
+                <div class="section-header">
+                    <h2>Your Library</h2>
+                    <span id="libraryCount" class="badge">0 games</span>
+                </div>
+                <div class="games-grid" id="gamesGrid">
+                    <div class="empty-state" id="libraryEmpty">
+                        <div class="empty-icon">🎮</div>
+                        <p>No games tracked yet.</p>
+                        <p>Click <strong>+ Add Game</strong> to get started.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sessions Tab -->
+            <section id="tab-sessions" class="tab-content">
+                <div class="section-header">
+                    <h2>Session History</h2>
+                    <span id="sessionsCount" class="badge">0 sessions</span>
+                </div>
+                <div class="table-container glass">
+                    <table class="sessions-table">
+                        <thead>
+                            <tr>
+                                <th>Game</th>
+                                <th>Date</th>
+                                <th>Started</th>
+                                <th>Ended</th>
+                                <th>Duration</th>
+                                <th>Active</th>
+                                <th>Idle</th>
+                                <th class="actions-col"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessionsList"></tbody>
+                    </table>
+                    <div class="empty-state" id="sessionsEmpty">
+                        <div class="empty-icon">📋</div>
+                        <p>No sessions recorded yet.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Tab -->
+            <section id="tab-settings" class="tab-content">
+                <div class="section-header">
+                    <h2>Settings & Data</h2>
+                </div>
+                
+                <div class="settings-grid">
+                    <!-- Steam Integration -->
+                    <div class="settings-card glass">
+                        <h3>Steam Playtime Sync</h3>
+                        <p class="settings-desc">Fetch your total playtime from Steam. Requires a free Steam Web API Key and your 64-bit Steam ID.</p>
+                        
+                        <div class="form-group">
+                            <label>Steam Web API Key</label>
+                            <input type="text" id="steamApiKeyInput" placeholder="Enter API Key...">
+                            <small><a href="https://steamcommunity.com/dev/apikey" target="_blank" style="color:var(--accent-light)">Get one here</a></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Steam ID (64-bit)</label>
+                            <input type="text" id="steamIdInput" placeholder="7656119...">
+                        </div>
+                        <div style="display:flex; gap:10px; margin-top:10px;">
+                            <button id="saveSettingsBtn" class="btn-secondary">Save Keys</button>
+                            <button id="syncSteamBtn" class="btn-primary" style="flex:1">Sync Steam Playtime</button>
+                        </div>
+                        <div id="steamSyncStatus" style="margin-top:10px; font-size:0.8rem; color:var(--text-muted)"></div>
+                    </div>
+
+                    <!-- Appearance Settings -->
+                    <div class="settings-card glass">
+                        <h3>Appearance</h3>
+                        <p class="settings-desc">Customize the look and feel of your dashboard.</p>
+                        <div class="form-group">
+                            <label>Theme</label>
+                            <select id="themeSelect" class="form-control">
+                                <option value="dark">Dark Gaming (Default)</option>
+                                <option value="light-minimal">Light Minimalist</option>
+                                <option value="oled">OLED Pitch Black</option>
+                                <option value="ocean">Deep Ocean</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Archived Games -->
+                    <div class="settings-card glass">
+                        <h3>Archived Apps/Games</h3>
+                        <p class="settings-desc">Items you've untracked. Their history is kept, but hidden from the library.</p>
+                        
+                        <div id="archivedGamesList" class="archived-list">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add Game Modal -->
+    <div class="modal-overlay" id="addGameModal">
+        <div class="modal glass">
+            <div class="modal-header">
+                <h2>Add Game</h2>
+                <button class="close-btn" onclick="closeModal('addGameModal')">&#215;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="gameTitleInput">Game Title <span class="required">*</span></label>
+                    <input type="text" id="gameTitleInput" placeholder="e.g. Cyberpunk 2077" autocomplete="off">
+                    <div class="cover-search-status" id="coverSearchStatus"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="gamePathInput">Executable Path</label>
+                    <div class="input-group">
+                        <input type="text" id="gamePathInput" placeholder="C:\Games\MyGame\game.exe" autocomplete="off">
+                        <button class="btn-secondary" id="browseBtn">Browse...</button>
+                    </div>
+                    <small>The process name will be auto-filled from the file name.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="processNameInput">Process Name <span class="hint">(without .exe)</span></label>
+                    <input type="text" id="processNameInput" placeholder="e.g. Cyberpunk2077" autocomplete="off">
+                    <small>Used to match against running processes. Prefilled from the executable name.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="coverUrlInput">Cover Art URL <span class="hint">(optional)</span></label>
+                    <div class="cover-row">
+                        <div>
+                            <input type="text" id="coverUrlInput" placeholder="https://..." autocomplete="off">
+                        </div>
+                        <div class="cover-preview-box" id="coverPreview">
+                            <span class="cover-placeholder-text">Preview</span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <div class="processes-section">
+                    <h3 class="processes-title">Detected Processes <span class="hint">(click Track to add instantly)</span></h3>
+                    <div class="recent-processes" id="recentProcessesList">
+                        <div class="loading-text">Loading processes...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('addGameModal')">Cancel</button>
+                <button class="btn-primary" id="saveGameBtn">Track Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Cover Art Modal -->
+    <div class="modal-overlay" id="editCoverModal">
+        <div class="modal glass" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Update Cover Art</h2>
+                <button class="close-btn" onclick="closeModal('editCoverModal')">&#215;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editGameId">
+                <div class="form-group">
+                    <label for="editCoverUrl">Cover Art URL</label>
+                    <input type="text" id="editCoverUrl" placeholder="https://...">
+                </div>
+                <div class="cover-preview-box large" id="editCoverPreview">
+                    <span class="cover-placeholder-text">Preview</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('editCoverModal')">Cancel</button>
+                <button class="btn-primary" id="saveEditCoverBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Session Modal -->
+    <div class="modal-overlay" id="editSessionModal">
+        <div class="modal glass" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Edit Session</h2>
+                <button class="close-btn" onclick="closeModal('editSessionModal')">&#215;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editSessionId">
+                <div class="form-group">
+                    <label>Start Time</label>
+                    <input type="datetime-local" id="editSessionStart" step="1">
+                </div>
+                <div class="form-group">
+                    <label>End Time</label>
+                    <input type="datetime-local" id="editSessionEnd" step="1">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Total Duration (Minutes)</label>
+                        <input type="number" id="editSessionTotalMins" min="0">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Idle Time (Minutes)</label>
+                        <input type="number" id="editSessionIdleMins" min="0">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('editSessionModal')">Cancel</button>
+                <button class="btn-primary" id="saveSessionBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Details Modal (Individual Graphs) -->
+    <div class="modal-overlay" id="gameDetailsModal">
+        <div class="modal glass" style="max-width: 800px; width: 90%;">
+            <div class="modal-header">
+                <h2 id="detailsGameTitle">Game Details</h2>
+                <button class="close-btn" onclick="closeModal('gameDetailsModal')">&#215;</button>
+            </div>
+            <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+                
+                <div class="details-top-stats" style="display:flex; gap: 20px; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px;">
+                    <div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Tracker Time</div>
+                        <div id="detailsTrackerTime" style="font-size:1.5rem; font-weight:600; color:var(--accent-light);">0h 0m</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Steam Time</div>
+                        <div id="detailsSteamTime" style="font-size:1.5rem; font-weight:600; color:var(--text);">--</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Combined</div>
+                        <div id="detailsCombinedTime" style="font-size:1.5rem; font-weight:600; color:var(--green);">0h 0m</div>
+                    </div>
+                </div>
+
+                <div class="chart-container glass" style="padding: 16px;">
+                    <div class="chart-header">
+                        <h3>Playtime History</h3>
+                    </div>
+                    <canvas id="gameDetailChart"></canvas>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('gameDetailsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
