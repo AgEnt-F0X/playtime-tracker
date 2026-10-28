@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" shape-rendering="crispEdges">
+  <!-- IDLE STATE -->
+  <g id="state-idle">
+    <!-- Antenna -->
+    <rect x="22" y="4" width="4" height="4" fill="#f59e0b"/>
+    <rect x="23" y="8" width="2" height="4" fill="#94a3b8"/>
+    <!-- Head / TV Body -->
+    <rect x="10" y="12" width="28" height="22" rx="0" fill="#1e1b4b"/>
+    <rect x="12" y="14" width="24" height="18" fill="#312e81"/>
+    <!-- Screen -->
+    <rect x="14" y="16" width="20" height="14" fill="#0f172a"/>
+    <!-- Eyes (Cute Pixel Spark) -->
+    <rect x="17" y="20" width="4" height="4" fill="#38bdf8"/>
+    <rect x="27" y="20" width="4" height="4" fill="#38bdf8"/>
+    <rect x="19" y="20" width="2" height="2" fill="#ffffff"/>
+    <rect x="29" y="20" width="2" height="2" fill="#ffffff"/>
+    <!-- Cute Smile -->
+    <rect x="21" y="26" width="6" height="2" fill="#38bdf8"/>
+    <!-- Feet -->
+    <rect x="14" y="34" width="6" height="4" fill="#475569"/>
+    <rect x="28" y="34" width="6" height="4" fill="#475569"/>
+    <!-- Little Hands -->
+    <rect x="6" y="20" width="4" height="6" fill="#6366f1"/>
+    <rect x="38" y="20" width="4" height="6" fill="#6366f1"/>
+  </g>
+
+  <!-- PLAYING STATE (Holding Game Controller with Happy Eyes) -->
+  <g id="state-playing" style="display:none;">
+    <rect x="22" y="3" width="4" height="4" fill="#10b981"/>
+    <rect x="23" y="7" width="2" height="5" fill="#94a3b8"/>
+    <!-- Head -->
+    <rect x="10" y="12" width="28" height="22" fill="#064e3b"/>
+    <rect x="12" y="14" width="24" height="18" fill="#047857"/>
+    <!-- Screen -->
+    <rect x="14" y="16" width="20" height="14" fill="#022c22"/>
+    <!-- Cheerful Eyes (Happy Arcs) -->
+    <rect x="16" y="20" width="6" height="2" fill="#34d399"/>
+    <rect x="16" y="18" width="2" height="2" fill="#34d399"/>
+    <rect x="20" y="18" width="2" height="2" fill="#34d399"/>
+    <rect x="26" y="20" width="6" height="2" fill="#34d399"/>
+    <rect x="26" y="18" width="2" height="2" fill="#34d399"/>
+    <rect x="30" y="18" width="2" height="2" fill="#34d399"/>
+    <!-- Controller Held in Hands -->
+    <rect x="16" y="30" width="16" height="8" rx="0" fill="#18181b"/>
+    <rect x="18" y="32" width="4" height="2" fill="#f43f5e"/>
+    <rect x="26" y="32" width="2" height="2" fill="#3b82f6"/>
+    <rect x="28" y="34" width="2" height="2" fill="#eab308"/>
+    <!-- Feet -->
+    <rect x="14" y="36" width="6" height="4" fill="#334155"/>
+    <rect x="28" y="36" width="6" height="4" fill="#334155"/>
+  </g>
+
+  <!-- AFK STATE (Sleeping Zzz) -->
+  <g id="state-afk" style="display:none;">
+    <rect x="22" y="4" width="4" height="4" fill="#64748b"/>
+    <rect x="23" y="8" width="2" height="4" fill="#475569"/>
+    <rect x="10" y="12" width="28" height="22" fill="#1e293b"/>
+    <rect x="12" y="14" width="24" height="18" fill="#334155"/>
+    <rect x="14" y="16" width="20" height="14" fill="#0f172a"/>
+    <!-- Sleeping Closed Line Eyes (-_-) -->
+    <rect x="17" y="22" width="5" height="2" fill="#94a3b8"/>
+    <rect x="26" y="22" width="5" height="2" fill="#94a3b8"/>
+    <!-- Feet -->
+    <rect x="14" y="34" width="6" height="4" fill="#1e293b"/>
+    <rect x="28" y="34" width="6" height="4" fill="#1e293b"/>
+    <!-- ZZZ -->
+    <text x="36" y="14" fill="#facc15" font-family="monospace" font-size="10" font-weight="bold">Z</text>
+    <text x="41" y="8" fill="#facc15" font-family="monospace" font-size="7" font-weight="bold">z</text>
+  </g>
+
+  <!-- WARNING STATE (3h+ session: Drink Water / Stretch reminder) -->
+  <g id="state-warning" style="display:none;">
+    <rect x="22" y="4" width="4" height="4" fill="#f97316"/>
+    <rect x="23" y="8" width="2" height="4" fill="#94a3b8"/>
+    <rect x="10" y="12" width="28" height="22" fill="#7c2d12"/>
+    <rect x="12" y="14" width="24" height="18" fill="#9a3412"/>
+    <rect x="14" y="16" width="20" height="14" fill="#451a03"/>
+    <!-- Wide Caring Eyes -->
+    <rect x="17" y="19" width="4" height="5" fill="#fed7aa"/>
+    <rect x="27" y="19" width="4" height="5" fill="#fed7aa"/>
+    <rect x="18" y="21" width="2" height="3" fill="#000000"/>
+    <rect x="28" y="21" width="2" height="3" fill="#000000"/>
+    <!-- Water Glass Cup in hand -->
+    <rect x="36" y="22" width="6" height="9" fill="#38bdf8" opacity="0.85"/>
+    <rect x="37" y="24" width="4" height="6" fill="#0284c7"/>
+    <!-- Feet -->
+    <rect x="14" y="34" width="6" height="4" fill="#475569"/>
+    <rect x="28" y="34" width="6" height="4" fill="#475569"/>
+  </g>
+
+  <!-- CELEBRATE STATE (Achievement / Level Up Party) -->
+  <g id="state-celebrate" style="display:none;">
+    <!-- Sparkle Star on top -->
+    <polygon points="24,2 26,7 31,7 27,10 29,15 24,12 19,15 21,10 17,7 22,7" fill="#fde047"/>
+    <rect x="10" y="12" width="28" height="22" fill="#4a044e"/>
+    <rect x="12" y="14" width="24" height="18" fill="#701a75"/>
+    <rect x="14" y="16" width="20" height="14" fill="#2e1065"/>
+    <!-- Starry Eyes -->
+    <polygon points="19,18 20,20 22,20 20,21 21,23 19,22 17,23 18,21 16,20 18,20" fill="#fde047"/>
+    <polygon points="29,18 30,20 32,20 30,21 31,23 29,22 27,23 28,21 26,20 28,20" fill="#fde047"/>
+    <rect x="21" y="25" width="6" height="3" fill="#f472b6"/>
+    <!-- Raised Hands -->
+    <rect x="4" y="14" width="4" height="8" fill="#d946ef"/>
+    <rect x="40" y="14" width="4" height="8" fill="#d946ef"/>
+    <!-- Feet -->
+    <rect x="14" y="34" width="6" height="4" fill="#701a75"/>
+    <rect x="28" y="34" width="6" height="4" fill="#701a75"/>
+  </g>
+</svg>

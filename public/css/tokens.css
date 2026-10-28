@@ -1,0 +1,155 @@
+/* ── Typography (Bundled Locally — Zero CDN Calls) ── */
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-400.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-600.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-700.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* ── Neutral Charcoal Base ── */
+  --bg-base: #0c0d12;
+  --bg-surface: #13151b;
+  --bg-surface-elevated: #1a1d26;
+  --bg-surface-subtle: rgba(255, 255, 255, 0.035);
+  --bg-glass: rgba(14, 16, 22, 0.78);
+  --bg-glass-card: rgba(19, 21, 28, 0.72);
+
+  /* ── Hairline Borders & Dividers ── */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-normal: rgba(255, 255, 255, 0.12);
+  --border-focus: rgba(255, 255, 255, 0.28);
+  --glass-border: rgba(255, 255, 255, 0.07);
+
+  /* ── Typography Colors ── */
+  --text-primary: #f1f3f7;
+  --text-secondary: #9096a6;
+  --text-tertiary: #585e6f;
+  --text: #f1f3f7;
+  --text-muted: #9096a6;
+  --text-dim: #585e6f;
+
+  /* ── Dynamic Accent (Extracted From Game Art, Restrained Fallback) ── */
+  --accent: #5e7ce2;
+  --accent-light: #7b96f5;
+  --accent-glow: rgba(94, 124, 226, 0.18);
+  --accent-glow-strong: rgba(94, 124, 226, 0.40);
+  --accent-soft: rgba(94, 124, 226, 0.10);
+
+  /* ── Functional / Status Colors ── */
+  --green: #22c55e;
+  --green-soft: rgba(34, 197, 94, 0.12);
+  --green-glow: rgba(34, 197, 94, 0.25);
+  --gold: #eab308;
+  --gold-soft: rgba(234, 179, 8, 0.12);
+  --gold-glow: rgba(234, 179, 8, 0.25);
+  --red: #ef4444;
+  --red-soft: rgba(239, 68, 68, 0.12);
+  --xp: #eab308;
+
+  /* ── Spacing Scale ── */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* ── Deliberate Border Radii ── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
+
+  /* ── Layout Sizes ── */
+  --titlebar-height: 38px;
+  --sidebar-width: 220px;
+  --card-aspect: 2 / 3;
+
+  /* ── Fonts ── */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+
+  /* ── Purposeful Transitions ── */
+  --transition-fast: 150ms ease;
+  --transition-normal: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Theme Overrides ── */
+[data-theme="oled"] {
+  --bg-base: #000000;
+  --bg-surface: #070708;
+  --bg-surface-elevated: #0f1012;
+  --bg-surface-subtle: rgba(255, 255, 255, 0.025);
+  --bg-glass: rgba(0, 0, 0, 0.92);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="ocean"] {
+  --bg-base: #080d14;
+  --bg-surface: #0e1520;
+  --bg-surface-elevated: #141f2e;
+  --bg-glass: rgba(10, 17, 26, 0.82);
+  --border-subtle: rgba(56, 189, 248, 0.08);
+}
+
+[data-theme="light-minimal"] {
+  --bg-base: #f5f6f9;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ebeef4;
+  --bg-surface-subtle: rgba(0, 0, 0, 0.03);
+  --bg-glass: rgba(255, 255, 255, 0.88);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-normal: rgba(0, 0, 0, 0.14);
+  --text-primary: #11141a;
+  --text-secondary: #586072;
+  --text-tertiary: #8f96a8;
+  --text: #11141a;
+  --text-muted: #586072;
+  --text-dim: #8f96a8;
+}
+
+/* ── Performance Mode Overrides ── */
+.perf-mode {
+  --transition-fast: 0s !important;
+  --transition-normal: 0s !important;
+}
+
+.perf-mode * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.perf-mode .game-card {
+  transform: none !important;
+  transition: border-color 0.1s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

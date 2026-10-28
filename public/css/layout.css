@@ -1,0 +1,312 @@
+/* ══════════════════════════════════════════════════════════
+   PLAYTIME TRACKER — Layout & Shell Architecture
+   De-vibecoded: Hairline borders, calm surfaces, refined typography
+══════════════════════════════════════════════════════════ */
+
+/* ── Custom Window Titlebar ── */
+.titlebar {
+  -webkit-app-region: drag;
+  height: var(--titlebar-height);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-md);
+  background: rgba(12, 13, 18, 0.92);
+  border-bottom: 1px solid var(--border-subtle);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  backdrop-filter: blur(16px);
+}
+
+.titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 600;
+  font-size: 0.84rem;
+  letter-spacing: -0.2px;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.titlebar-logo-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-xs);
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.titlebar-controls {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.titlebar-btn {
+  width: 32px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  font-size: 13px;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.titlebar-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.titlebar-btn.close:hover {
+  background: var(--red);
+  color: #ffffff;
+}
+
+/* ── App Shell & Structure ── */
+.app-shell {
+  display: flex;
+  width: 100%;
+  height: calc(100vh - var(--titlebar-height));
+  margin-top: var(--titlebar-height);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Dynamic Hero Backdrop (Crossfading per Game) ── */
+.hero-backdrop-container {
+  position: fixed;
+  top: var(--titlebar-height);
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.hero-backdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+  opacity: 0.18;
+  filter: blur(32px) saturate(1.2);
+  transform: scale(1.06);
+  transition: opacity 500ms cubic-bezier(0.4, 0, 0.2, 1), background-image 500ms ease;
+  will-change: opacity, background-image;
+}
+
+.hero-backdrop.crisp {
+  filter: blur(4px) saturate(1.05);
+  opacity: 0.14;
+}
+
+.hero-backdrop-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 75% 20%, transparent 15%, var(--bg-base) 80%),
+              linear-gradient(to bottom, rgba(12, 13, 18, 0.5) 0%, var(--bg-base) 90%);
+}
+
+/* ── Optional CRT Scanline Overlay ── */
+.crt-overlay-layer {
+  display: none;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+  background-size: 100% 3px;
+  opacity: 0.5;
+}
+
+body.crt-enabled .crt-overlay-layer {
+  display: block;
+}
+
+/* ── Sidebar Navigation ── */
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100%;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-md);
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nav-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  padding: var(--space-xs) var(--space-sm);
+  margin-top: var(--space-sm);
+  margin-bottom: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.88rem;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  position: relative;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+}
+
+.nav-item-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+/* ── Sidebar Status Indicator (Replaces Byte Bot) ── */
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.sidebar-status-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast);
+}
+
+.status-dot.active {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+
+.status-dot.afk {
+  background: var(--gold);
+}
+
+.status-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.status-title {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-sub {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-hint {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.sidebar-hint kbd {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+/* ── Main Content Area ── */
+.main-stage {
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  z-index: 10;
+  padding: var(--space-xl) var(--space-2xl);
+  scroll-behavior: smooth;
+}
+
+/* ── Screen Container (Router Switching) ── */
+.screen {
+  display: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.screen.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}

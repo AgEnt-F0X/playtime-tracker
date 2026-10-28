@@ -1,347 +1,740 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PlayTime Tracker</title>
-    <meta name="description" content="Track all your games, playtime, and session history in one premium dashboard.">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlayTime Tracker</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;">
+
+  <!-- Local CSS Architecture -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/reset.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/screens.css">
+  <link rel="stylesheet" href="/css/atmosphere.css">
+  <link rel="stylesheet" href="/css/animations.css">
 </head>
 <body>
-    <!-- Custom Titlebar -->
-    <div class="titlebar" id="titlebar">
-        <div class="titlebar-drag">
-            <div class="titlebar-logo-icon"></div>
-            <span class="titlebar-title">PlayTime Tracker</span>
-        </div>
-        <div class="titlebar-controls">
-            <button id="btn-minimize" title="Minimize">&#8722;</button>
-            <button id="btn-maximize" title="Maximize">&#9633;</button>
-            <button id="btn-close" title="Close">&#215;</button>
-        </div>
+  <!-- Custom Frameless Titlebar with Living Quote -->
+  <header class="titlebar" id="titlebar">
+    <div class="titlebar-brand">
+      <div class="titlebar-logo-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+      </div>
+      <span>PlayTime Tracker</span>
     </div>
 
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar glass">
-            <div class="logo">
-                <div class="logo-icon"></div>
-                <h2>PlayTime</h2>
-            </div>
-            <nav>
-                <button class="nav-btn active" data-tab="dashboard" id="nav-dashboard">&#9632; Dashboard</button>
-                <button class="nav-btn" data-tab="library" id="nav-library">&#9670; Library</button>
-                <button class="nav-btn" data-tab="sessions" id="nav-sessions">&#9776; History</button>
-                <button class="nav-btn" data-tab="settings" id="nav-settings">&#9881; Settings</button>
-            </nav>
-            <div class="sidebar-bottom">
-                <button id="addGameBtn" class="btn-primary full-width">+ Add Game</button>
-                <button id="scanGamesBtn" class="btn-secondary full-width" style="margin-top:8px;">&#x1F50D; Scan for Games</button>
-            </div>
-        </aside>
+    <!-- Video Game Quote Line (Online only) -->
+    <div class="atmos-quote" id="atmosQuote" hidden></div>
 
-        <!-- Main Content -->
-        <main class="content">
-            <!-- Top Header -->
-            <header class="top-header glass">
-                <div class="active-session-info" id="activeSessionBar">
-                    <div class="pulsing-dot" id="activeDot"></div>
-                    <div class="active-text-group">
-                        <span id="activeGameText">No active game</span>
-                        <span id="activeElapsedText" class="elapsed-time"></span>
-                        <span id="activeAfkText" class="afk-indicator"></span>
-                    </div>
-                    <button id="afkToggleBtn" class="afk-toggle-btn" title="Toggle AFK (Ctrl+Shift+F9)">⏸ AFK</button>
-                </div>
-                <div class="header-stats">
-                    <div class="header-stat">
-                        <span class="stat-label">Total Playtime</span>
-                        <span class="stat-value" id="totalPlaytimeVal">0h 0m</span>
-                    </div>
-                    <div class="header-stat">
-                        <span class="stat-label">Games Tracked</span>
-                        <span class="stat-value" id="trackedCount">0</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Dashboard Tab -->
-            <section id="tab-dashboard" class="tab-content active">
-                <div class="chart-container glass">
-                    <div class="chart-header">
-                        <h3>Playtime Last 7 Days</h3>
-                        <span class="chart-subtitle" id="weeklyTotalLabel">–</span>
-                    </div>
-                    <canvas id="playtimeChart"></canvas>
-                </div>
-                <div class="top-games-section">
-                    <div class="top-games-header">
-                        <h3 class="section-title">Top Games</h3>
-                        <div class="sort-toggle" id="dashSortToggle" title="Switch sort order">
-                            <button class="sort-btn active" data-sort="playtime" id="sortByPlaytime">⏱ Most Played</button>
-                            <button class="sort-btn" data-sort="recent" id="sortByRecent">🕐 Recently Played</button>
-                        </div>
-                    </div>
-                    <div id="topGamesList" class="top-games-list"></div>
-                </div>
-            </section>
-
-            <!-- Library Tab -->
-            <section id="tab-library" class="tab-content">
-                <div class="section-header">
-                    <h2>Your Library</h2>
-                    <span id="libraryCount" class="badge">0 games</span>
-                </div>
-                <div class="games-grid" id="gamesGrid">
-                    <div class="empty-state" id="libraryEmpty">
-                        <div class="empty-icon">🎮</div>
-                        <p>No games tracked yet.</p>
-                        <p>Click <strong>+ Add Game</strong> to get started.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Sessions Tab -->
-            <section id="tab-sessions" class="tab-content">
-                <div class="section-header">
-                    <h2>Session History</h2>
-                    <span id="sessionsCount" class="badge">0 sessions</span>
-                </div>
-                <div class="table-container glass">
-                    <table class="sessions-table">
-                        <thead>
-                            <tr>
-                                <th>Game</th>
-                                <th>Date</th>
-                                <th>Started</th>
-                                <th>Ended</th>
-                                <th>Duration</th>
-                                <th>Active</th>
-                                <th>Idle</th>
-                                <th class="actions-col"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="sessionsList"></tbody>
-                    </table>
-                    <div class="empty-state" id="sessionsEmpty">
-                        <div class="empty-icon">📋</div>
-                        <p>No sessions recorded yet.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Settings Tab -->
-            <section id="tab-settings" class="tab-content">
-                <div class="section-header">
-                    <h2>Settings & Data</h2>
-                </div>
-                
-                <div class="settings-grid">
-                    <!-- Steam Integration -->
-                    <div class="settings-card glass">
-                        <h3>Steam Playtime Sync</h3>
-                        <p class="settings-desc">Fetch your total playtime from Steam. Requires a free Steam Web API Key and your 64-bit Steam ID.</p>
-                        
-                        <div class="form-group">
-                            <label>Steam Web API Key</label>
-                            <input type="text" id="steamApiKeyInput" placeholder="Enter API Key...">
-                            <small><a href="https://steamcommunity.com/dev/apikey" target="_blank" style="color:var(--accent-light)">Get one here</a></small>
-                        </div>
-                        <div class="form-group">
-                            <label>Steam ID (64-bit)</label>
-                            <input type="text" id="steamIdInput" placeholder="7656119...">
-                        </div>
-                        <div style="display:flex; gap:10px; margin-top:10px;">
-                            <button id="saveSettingsBtn" class="btn-secondary">Save Keys</button>
-                            <button id="syncSteamBtn" class="btn-primary" style="flex:1">Sync Steam Playtime</button>
-                        </div>
-                        <div id="steamSyncStatus" style="margin-top:10px; font-size:0.8rem; color:var(--text-muted)"></div>
-                    </div>
-
-                    <!-- Appearance Settings -->
-                    <div class="settings-card glass">
-                        <h3>Appearance</h3>
-                        <p class="settings-desc">Customize the look and feel of your dashboard.</p>
-                        <div class="form-group">
-                            <label>Theme</label>
-                            <select id="themeSelect" class="form-control">
-                                <option value="dark">Dark Gaming (Default)</option>
-                                <option value="light-minimal">Light Minimalist</option>
-                                <option value="oled">OLED Pitch Black</option>
-                                <option value="ocean">Deep Ocean</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Archived Games -->
-                    <div class="settings-card glass">
-                        <h3>Archived Apps/Games</h3>
-                        <p class="settings-desc">Items you've untracked. Their history is kept, but hidden from the library.</p>
-                        
-                        <div id="archivedGamesList" class="archived-list">
-                            <!-- Populated via JS -->
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
+    <div class="titlebar-controls">
+      <button class="titlebar-btn" id="btn-minimize" title="Minimize window">&#8722;</button>
+      <button class="titlebar-btn" id="btn-maximize" title="Maximize window">&#9633;</button>
+      <button class="titlebar-btn close" id="btn-close" title="Close window">&#215;</button>
     </div>
+  </header>
 
-    <!-- Add Game Modal -->
-    <div class="modal-overlay" id="addGameModal">
-        <div class="modal glass">
-            <div class="modal-header">
-                <h2>Add Game</h2>
-                <button class="close-btn" onclick="closeModal('addGameModal')">&#215;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="gameTitleInput">Game Title <span class="required">*</span></label>
-                    <input type="text" id="gameTitleInput" placeholder="e.g. Cyberpunk 2077" autocomplete="off">
-                    <div class="cover-search-status" id="coverSearchStatus"></div>
-                </div>
+  <!-- Living Art Wall Backdrop (Slow-drifting covers when idle) -->
+  <div id="atmos" aria-hidden="true"></div>
 
-                <div class="form-group">
-                    <label for="gamePathInput">Executable Path</label>
-                    <div class="input-group">
-                        <input type="text" id="gamePathInput" placeholder="C:\Games\MyGame\game.exe" autocomplete="off">
-                        <button class="btn-secondary" id="browseBtn">Browse...</button>
-                    </div>
-                    <small>The process name will be auto-filled from the file name.</small>
-                </div>
+  <!-- Dynamic Game Backdrop (Crossfading hero art per game) -->
+  <div class="hero-backdrop-container">
+    <div class="hero-backdrop" id="heroBackdrop"></div>
+    <div class="hero-backdrop-overlay"></div>
+  </div>
 
-                <div class="form-group">
-                    <label for="processNameInput">Process Name <span class="hint">(without .exe)</span></label>
-                    <input type="text" id="processNameInput" placeholder="e.g. Cyberpunk2077" autocomplete="off">
-                    <small>Used to match against running processes. Prefilled from the executable name.</small>
-                </div>
+  <!-- CRT Scanline Overlay (Toggleable in Settings) -->
+  <div class="crt-overlay-layer"></div>
 
-                <div class="form-group">
-                    <label for="coverUrlInput">Cover Art URL <span class="hint">(optional)</span></label>
-                    <div class="cover-row">
-                        <div>
-                            <input type="text" id="coverUrlInput" placeholder="https://..." autocomplete="off">
-                        </div>
-                        <div class="cover-preview-box" id="coverPreview">
-                            <span class="cover-placeholder-text">Preview</span>
-                        </div>
-                    </div>
-                </div>
+  <!-- App Shell -->
+  <div class="app-shell">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div>
+        <nav class="nav-group">
+          <div class="nav-label">Navigation</div>
 
-                <hr class="divider">
+          <a href="#home" class="nav-item active" data-route="home">
+            <svg class="nav-item-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span>Dashboard</span>
+          </a>
 
-                <div class="processes-section">
-                    <h3 class="processes-title">Detected Processes <span class="hint">(click Track to add instantly)</span></h3>
-                    <div class="recent-processes" id="recentProcessesList">
-                        <div class="loading-text">Loading processes...</div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeModal('addGameModal')">Cancel</button>
-                <button class="btn-primary" id="saveGameBtn">Track Game</button>
-            </div>
+          <a href="#library" class="nav-item" data-route="library">
+            <svg class="nav-item-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="7" height="7" x="3" y="3" rx="1"/>
+              <rect width="7" height="7" x="14" y="3" rx="1"/>
+              <rect width="7" height="7" x="14" y="14" rx="1"/>
+              <rect width="7" height="7" x="3" y="14" rx="1"/>
+            </svg>
+            <span>Library</span>
+          </a>
+
+          <a href="#history" class="nav-item" data-route="history">
+            <svg class="nav-item-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>Session history</span>
+          </a>
+
+          <a href="#stats" class="nav-item" data-route="stats">
+            <svg class="nav-item-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" x2="18" y1="20" y2="10"/>
+              <line x1="12" x2="12" y1="20" y2="4"/>
+              <line x1="6" x2="6" y1="20" y2="14"/>
+            </svg>
+            <span>Analytics</span>
+          </a>
+
+          <a href="#achievements" class="nav-item" data-route="achievements">
+            <svg class="nav-item-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+              <path d="M4 22h16"/>
+              <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+              <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+              <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+            </svg>
+            <span>Achievements</span>
+          </a>
+
+          <a href="#settings" class="nav-item" data-route="settings">
+            <svg class="nav-item-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>Settings</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Quiet Live Session Status Indicator -->
+      <div class="sidebar-bottom">
+        <div class="sidebar-status-card" id="sidebarStatusCard">
+          <span class="status-dot" id="sidebarStatusDot"></span>
+          <div class="status-info">
+            <span class="status-title" id="sidebarStatusTitle">Idle</span>
+            <span class="status-sub" id="sidebarStatusSub">No game running</span>
+          </div>
         </div>
-    </div>
 
-    <!-- Edit Cover Art Modal -->
-    <div class="modal-overlay" id="editCoverModal">
-        <div class="modal glass" style="max-width: 400px;">
-            <div class="modal-header">
-                <h2>Update Cover Art</h2>
-                <button class="close-btn" onclick="closeModal('editCoverModal')">&#215;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="editGameId">
-                <div class="form-group">
-                    <label for="editCoverUrl">Cover Art URL</label>
-                    <input type="text" id="editCoverUrl" placeholder="https://...">
-                </div>
-                <div class="cover-preview-box large" id="editCoverPreview">
-                    <span class="cover-placeholder-text">Preview</span>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeModal('editCoverModal')">Cancel</button>
-                <button class="btn-primary" id="saveEditCoverBtn">Save</button>
-            </div>
+        <div class="sidebar-hint">
+          Press <kbd>Ctrl+K</kbd> for commands
         </div>
-    </div>
+      </div>
+    </aside>
 
-    <!-- Edit Session Modal -->
-    <div class="modal-overlay" id="editSessionModal">
-        <div class="modal glass" style="max-width: 450px;">
-            <div class="modal-header">
-                <h2>Edit Session</h2>
-                <button class="close-btn" onclick="closeModal('editSessionModal')">&#215;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="editSessionId">
-                <div class="form-group">
-                    <label>Start Time</label>
-                    <input type="datetime-local" id="editSessionStart" step="1">
-                </div>
-                <div class="form-group">
-                    <label>End Time</label>
-                    <input type="datetime-local" id="editSessionEnd" step="1">
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <div class="form-group" style="flex:1;">
-                        <label>Total Duration (Minutes)</label>
-                        <input type="number" id="editSessionTotalMins" min="0">
-                    </div>
-                    <div class="form-group" style="flex:1;">
-                        <label>Idle Time (Minutes)</label>
-                        <input type="number" id="editSessionIdleMins" min="0">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeModal('editSessionModal')">Cancel</button>
-                <button class="btn-primary" id="saveSessionBtn">Save</button>
-            </div>
+    <!-- Main Dynamic Content Stage -->
+    <main class="main-stage">
+
+      <!-- ══════════════════════════════════════════════════════
+           SCREEN 1: HOME
+      ══════════════════════════════════════════════════════ -->
+      <section class="screen active" id="screen-home">
+        <!-- Hero "Now Playing" Card -->
+        <div class="home-hero-card" id="homeHeroCard">
+          <!-- Populated by home.js -->
         </div>
-    </div>
 
-    <!-- Game Details Modal (Individual Graphs) -->
-    <div class="modal-overlay" id="gameDetailsModal">
-        <div class="modal glass" style="max-width: 800px; width: 90%;">
-            <div class="modal-header">
-                <h2 id="detailsGameTitle">Game Details</h2>
-                <button class="close-btn" onclick="closeModal('gameDetailsModal')">&#215;</button>
-            </div>
-            <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
-                
-                <div class="details-top-stats" style="display:flex; gap: 20px; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px;">
-                    <div>
-                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Tracker Time</div>
-                        <div id="detailsTrackerTime" style="font-size:1.5rem; font-weight:600; color:var(--accent-light);">0h 0m</div>
-                    </div>
-                    <div>
-                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Steam Time</div>
-                        <div id="detailsSteamTime" style="font-size:1.5rem; font-weight:600; color:var(--text);">--</div>
-                    </div>
-                    <div>
-                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Combined</div>
-                        <div id="detailsCombinedTime" style="font-size:1.5rem; font-weight:600; color:var(--green);">0h 0m</div>
-                    </div>
-                </div>
-
-                <div class="chart-container glass" style="padding: 16px;">
-                    <div class="chart-header">
-                        <h3>Playtime History</h3>
-                    </div>
-                    <canvas id="gameDetailChart"></canvas>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeModal('gameDetailsModal')">Close</button>
-            </div>
+        <!-- Continue Playing Carousel -->
+        <div class="section-header-row">
+          <h2 class="section-heading">Continue playing</h2>
+          <a href="#library" class="btn btn-ghost" style="font-size:0.8rem;">View library</a>
         </div>
-    </div>
+        <div class="carousel-container" id="homeCarousel">
+          <!-- Populated by home.js -->
+        </div>
 
-    <script src="app.js"></script>
+        <!-- Activity Section: Most Played / Recently Played Toggle with Graph -->
+        <div class="home-activity-section" id="homeActivitySection">
+          <div class="activity-header-row">
+            <div class="activity-title-group">
+              <h2 class="section-heading">Activity</h2>
+              <span class="activity-subtitle" id="homeActivitySubtitle">Top 8 games by total playtime</span>
+            </div>
+            <div class="segmented-control" role="group" aria-label="Activity view">
+              <div class="seg-thumb" id="homeSegThumb"></div>
+              <button type="button" class="seg-btn active" id="homeSegMostPlayed" data-view="most">Most played</button>
+              <button type="button" class="seg-btn" id="homeSegRecentlyPlayed" data-view="recent">Recently played</button>
+            </div>
+          </div>
+
+          <div class="activity-split-grid">
+            <div class="activity-chart-panel" id="homeChartContainer">
+              <!-- Populated by home.js -->
+            </div>
+            <div class="activity-list-panel" id="homeToggleListContainer">
+              <!-- Populated by home.js -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Today & Week Stat Summary -->
+        <div class="home-stats-strip">
+          <div class="stat-pill-card">
+            <span class="stat-pill-label">Played today</span>
+            <span class="stat-pill-value" id="homeStatToday">0h 0m</span>
+          </div>
+          <div class="stat-pill-card">
+            <span class="stat-pill-label">This week</span>
+            <span class="stat-pill-value" id="homeStatWeek">0h 0m</span>
+          </div>
+          <div class="stat-pill-card">
+            <span class="stat-pill-label">Sessions today</span>
+            <span class="stat-pill-value" id="homeStatSessions">0</span>
+          </div>
+          <div class="stat-pill-card">
+            <span class="stat-pill-label">Active streak</span>
+            <span class="stat-pill-value" id="homeStatStreak">0 days</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════
+           SCREEN 2: LIBRARY
+      ══════════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-library">
+        <!-- Toolbar -->
+        <div class="library-toolbar">
+          <div class="library-search-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+            <input type="text" id="libSearchInput" placeholder="Search games..." style="width:100%;">
+          </div>
+
+          <div class="filter-chips">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="steam">Steam</button>
+            <button class="filter-chip" data-filter="epic">Epic</button>
+            <button class="filter-chip" data-filter="custom">Custom</button>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            <select id="libSortSelect" class="form-select" style="width: auto; padding:6px 10px; font-size:0.84rem;">
+              <option value="recent">Recently played</option>
+              <option value="longest">Most played</option>
+              <option value="alpha">Alphabetical (A-Z)</option>
+            </select>
+
+            <button class="btn btn-icon active" id="libViewGridBtn" title="Grid view">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+              </svg>
+            </button>
+            <button class="btn btn-icon" id="libViewListBtn" title="List view">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+            </button>
+
+            <button class="btn btn-primary" id="libAddGameBtn" style="font-size:0.82rem; padding:6px 12px;">+ Add game</button>
+            <button class="btn btn-secondary" id="libShowArchivedBtn" style="font-size:0.82rem; padding:6px 10px;">Show archived</button>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <h2 class="section-heading">All games</h2>
+          <span id="libraryCountBadge" style="color:var(--text-tertiary); font-size:0.78rem; font-variant-numeric:tabular-nums;">0 games</span>
+        </div>
+
+        <!-- Games Grid / List Container -->
+        <div id="libraryGamesContainer" class="games-grid">
+          <!-- Populated by library.js -->
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════
+           SCREEN 2.5: SESSION HISTORY (Brought Back)
+      ══════════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-history">
+        <!-- Populated dynamically by history.js -->
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════
+           SCREEN 3: GAME DETAIL
+      ══════════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-game-detail">
+        <div style="margin-bottom: 14px;">
+          <button class="btn btn-secondary" id="detailBackBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            <span>Back to library</span>
+          </button>
+        </div>
+
+        <!-- Hero Banner with floating logo -->
+        <div class="detail-hero-banner" id="detailHeroBanner">
+          <div class="detail-hero-gradient">
+            <img class="detail-floating-logo" id="detailGameLogo" alt="" style="display:none;">
+            <div>
+              <h1 id="detailGameTitle" style="font-size: 2rem; font-weight:700; color:#fff; margin-bottom:4px;">Game Title</h1>
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn btn-secondary" id="detailChangeArtBtn" style="font-size:0.8rem; padding:4px 12px;">Change art</button>
+                <button class="btn btn-danger" id="detailUntrackBtn" style="font-size:0.8rem; padding:4px 12px;">Untrack</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Stats Row -->
+        <div class="detail-stats-grid">
+          <div class="glass-card">
+            <div class="detail-stat-label">Tracker playtime</div>
+            <div class="detail-stat-val" id="detailStatTracker">0h 0m</div>
+          </div>
+          <div class="glass-card">
+            <div class="detail-stat-label">Active time</div>
+            <div class="detail-stat-val" id="detailStatActive" style="color:var(--green);">0h 0m</div>
+          </div>
+          <div class="glass-card">
+            <div class="detail-stat-label">Steam synced time</div>
+            <div class="detail-stat-val" id="detailStatSteam">--</div>
+          </div>
+          <div class="glass-card">
+            <div class="detail-stat-label">Combined playtime</div>
+            <div class="detail-stat-val" id="detailStatCombined" style="color:var(--gold);">0h 0m</div>
+          </div>
+          <div class="glass-card">
+            <div class="detail-stat-label">Last played</div>
+            <div class="detail-stat-val" id="detailStatLast" style="font-size:0.95rem;">Never</div>
+          </div>
+        </div>
+
+        <!-- 30-Day Activity Heatmap -->
+        <div class="heatmap-container">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="font-size:0.92rem; font-weight:600;">30-Day activity</h3>
+            <span style="font-size:0.74rem; color:var(--text-tertiary);">Darker = more hours</span>
+          </div>
+          <div class="heatmap-grid" id="detailHeatmapGrid"></div>
+        </div>
+
+        <!-- Session History Table -->
+        <div class="glass-panel" style="padding: var(--space-lg); margin-bottom: var(--space-3xl);">
+          <h3 style="font-size:0.95rem; font-weight:600; margin-bottom:var(--space-md);">Session records</h3>
+          <div class="sessions-table-wrap">
+            <table class="sessions-table">
+              <thead>
+                <tr>
+                  <th>Game</th>
+                  <th>Date</th>
+                  <th>Started</th>
+                  <th>Ended</th>
+                  <th>Duration</th>
+                  <th>Active</th>
+                  <th>Idle / AFK</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="detailSessionsList"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════
+           SCREEN 4: STATS
+      ══════════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-stats">
+        <h2 class="section-heading" style="margin-bottom:var(--space-lg);">Analytics & insights</h2>
+
+        <!-- 52-Week Calendar Heatmap (GitHub-Style) -->
+        <div class="glass-panel" style="padding:var(--space-lg); margin-bottom:var(--space-lg);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="font-size:0.92rem; font-weight:600;">Annual playtime heatmap (52 weeks)</h3>
+            <span style="font-size:0.74rem; color:var(--text-tertiary);">Daily active duration</span>
+          </div>
+          <div class="calendar-heatmap-wrap" id="statsCalendarHeatmap"></div>
+        </div>
+
+        <!-- Grid of 2 Charts: Weekly Bar Chart & 24h Radial Chart -->
+        <div class="stats-grid-two">
+          <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <h3 style="font-size:0.9rem; font-weight:600;">Weekly playtime</h3>
+              <div style="font-size:0.74rem; display:flex; gap:10px;">
+                <span style="color:var(--accent);">■ Active</span>
+                <span style="color:var(--gold);">■ Idle</span>
+              </div>
+            </div>
+            <div id="statsWeeklyChart"></div>
+          </div>
+
+          <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <h3 style="font-size:0.9rem; font-weight:600;">Time of day breakdown</h3>
+              <span style="font-size:0.74rem; color:var(--text-tertiary);">Peak hours logged</span>
+            </div>
+            <div id="statsTimeOfDayRadial"></div>
+          </div>
+        </div>
+
+        <!-- Platform Distribution Donut -->
+        <div class="glass-card" style="margin-bottom:var(--space-xl);">
+          <h3 style="font-size:0.9rem; font-weight:600; margin-bottom:10px;">Platform distribution</h3>
+          <div id="statsPlatformDonut"></div>
+        </div>
+
+        <!-- Year Wrapped Card Export Container -->
+        <div id="statsYearWrappedWrap"></div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════
+           SCREEN 5: ACHIEVEMENTS & WELLBEING
+      ══════════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-achievements">
+        <h2 class="section-heading" style="margin-bottom:var(--space-lg);">Level progress & badges</h2>
+
+        <!-- XP & Level Banner -->
+        <div class="xp-level-banner">
+          <div>
+            <div style="font-size:0.72rem; color:var(--text-tertiary); font-weight:500;">Gamer tier</div>
+            <div class="level-badge-large" id="achieveLevelBadge">LVL 1</div>
+            <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:2px;" id="achieveXpCount">0 XP</div>
+            <div class="xp-progress-bar-bg" style="width:260px;">
+              <div class="xp-progress-bar-fill" id="achieveXpBarFill" style="width:0%;"></div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.8rem; color:var(--text-secondary);">1 minute active play = 1 XP</div>
+            <div style="font-size:0.72rem; color:var(--text-tertiary); margin-top:2px;">Unlock badges by tracking games</div>
+          </div>
+        </div>
+
+        <!-- Digital Wellbeing Goal Rings -->
+        <div class="stats-grid-two">
+          <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="font-size:0.9rem; font-weight:600;">Daily playtime goal</h3>
+              <span id="goalDailyProgress" style="font-variant-numeric:tabular-nums; font-size:0.78rem; color:var(--text-secondary);">0%</span>
+            </div>
+            <div class="xp-progress-bar-bg" style="margin-top:10px;">
+              <div class="xp-progress-bar-fill" id="goalDailyBarFill" style="width:0%; background:var(--green);"></div>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="font-size:0.9rem; font-weight:600;">Weekly target balance</h3>
+              <span id="goalWeeklyProgress" style="font-variant-numeric:tabular-nums; font-size:0.78rem; color:var(--text-secondary);">0%</span>
+            </div>
+            <div class="xp-progress-bar-bg" style="margin-top:10px;">
+              <div class="xp-progress-bar-fill" id="goalWeeklyBarFill" style="width:0%; background:var(--gold);"></div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="section-heading" style="margin: var(--space-xl) 0 var(--space-sm);">Earned badges</h3>
+        <div class="badges-grid" id="achieveBadgesGrid">
+          <!-- Populated by achievements.js -->
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════
+           SCREEN 6: SETTINGS
+      ══════════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-settings">
+        <h2 class="section-heading" style="margin-bottom:var(--space-lg);">Launcher settings</h2>
+
+        <div class="settings-section-grid">
+          <!-- Appearance & Display -->
+          <div class="glass-card">
+            <h3 style="font-size:0.95rem; font-weight:600; margin-bottom:12px;">Appearance & display</h3>
+
+            <div class="form-group" style="margin-bottom:12px;">
+              <label class="form-label">Theme</label>
+              <select id="settingsThemeSelect" class="form-select">
+                <option value="dark">Dark gaming (default)</option>
+                <option value="oled">OLED pitch black</option>
+                <option value="ocean">Deep ocean</option>
+                <option value="light-minimal">Light minimalist</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+              <label class="form-label">Accent colour mode</label>
+              <select id="settingsAccentModeSelect" class="form-select">
+                <option value="auto">Dynamic (extracted from game art)</option>
+                <option value="fixed">Fixed accent colour</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="settingsCustomAccentRow" style="display:none; margin-bottom:12px;">
+              <label class="form-label">Custom accent colour</label>
+              <input type="color" id="settingsCustomAccentInput" value="#5e7ce2" style="width:100%; height:36px; border-radius:4px; cursor:pointer;">
+            </div>
+
+            <div class="toggle-switch-row">
+              <div>
+                <strong style="font-size:0.84rem;">CRT scanline effect</strong>
+                <div style="font-size:0.72rem; color:var(--text-tertiary);">Retro arcade scanline overlay</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="settingsCrtToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-switch-row">
+              <div>
+                <strong style="font-size:0.84rem;">Performance mode</strong>
+                <div style="font-size:0.72rem; color:var(--text-tertiary);">Disables art wall drift and blurs for low memory</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="settingsPerfModeToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-switch-row">
+              <div>
+                <strong style="font-size:0.84rem;">UI sound effects</strong>
+                <div style="font-size:0.72rem; color:var(--text-tertiary);">Synthesized clicks and cues</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="settingsSoundToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Tracking & AFK Rules -->
+          <div class="glass-card">
+            <h3 style="font-size:0.95rem; font-weight:600; margin-bottom:12px;">Tracking & idle rules</h3>
+
+            <div class="toggle-switch-row" style="margin-bottom:12px;">
+              <div>
+                <strong style="font-size:0.84rem;">Count AFK time as playtime</strong>
+                <div style="font-size:0.72rem; color:var(--text-tertiary);">When off, only active minutes count to totals</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="settingsCountAfkToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+              <label class="form-label">Break reminder interval (minutes)</label>
+              <input type="number" id="settingsBreakMinsInput" class="form-input" min="30" max="360" value="90">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Art disk cache</label>
+              <p style="font-size:0.72rem; color:var(--text-tertiary); margin-bottom:6px;">Stored locally in <code>~/.playtime-tracker/art/</code></p>
+              <button class="btn btn-secondary" id="settingsClearArtBtn" style="font-size:0.8rem; align-self:flex-start;">Clear art cache</button>
+            </div>
+          </div>
+
+          <!-- Steam Integration -->
+          <div class="glass-card">
+            <h3 style="font-size:0.95rem; font-weight:600; margin-bottom:12px;">Steam playtime sync</h3>
+            <p style="font-size:0.72rem; color:var(--text-tertiary); margin-bottom:10px;">Sync lifetime hours from your Steam profile.</p>
+
+            <div class="form-group" style="margin-bottom:8px;">
+              <label class="form-label">Steam Web API key</label>
+              <input type="text" id="settingsSteamApiKey" class="form-input" placeholder="Enter Steam API key...">
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+              <label class="form-label">Steam 64-bit ID</label>
+              <input type="text" id="settingsSteamId" class="form-input" placeholder="7656119...">
+            </div>
+
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-secondary" id="settingsSaveSteamBtn">Save keys</button>
+              <button class="btn btn-primary" id="settingsSyncSteamBtn" style="flex:1;">Sync Steam playtime</button>
+            </div>
+          </div>
+
+          <!-- SteamGridDB Integration -->
+          <div class="glass-card">
+            <h3 style="font-size:0.95rem; font-weight:600; margin-bottom:12px;">SteamGridDB integration</h3>
+            <p style="font-size:0.72rem; color:var(--text-tertiary); margin-bottom:10px;">Automatic high-res covers, banners, and logos for non-Steam games.</p>
+
+            <div class="form-group" style="margin-bottom:12px;">
+              <label class="form-label">SteamGridDB API key</label>
+              <input type="text" id="settingsSgdbKey" class="form-input" placeholder="Enter SteamGridDB API key...">
+            </div>
+
+            <div style="display:flex; gap:var(--space-sm); align-items:center; flex-wrap:wrap;">
+              <button class="btn btn-primary" id="settingsSaveSgdbBtn">Save SteamGridDB key</button>
+              <button class="btn btn-secondary" id="settingsTestSgdbBtn">Test key</button>
+              <span id="settingsSgdbStatus" style="font-size:0.75rem; margin-left:4px;"></span>
+            </div>
+          </div>
+
+          <!-- Archived Games & Data -->
+          <div class="glass-card" style="grid-column: 1 / -1;">
+            <h3 style="font-size:0.95rem; font-weight:600; margin-bottom:12px;">Archived games & apps</h3>
+            <div id="settingsArchivedList">
+              <!-- Populated by settings.js -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MODALS
+  ══════════════════════════════════════════════════════════ -->
+
+  <!-- 1. Command Palette (Ctrl+K) Modal -->
+  <div class="modal-backdrop" id="commandPaletteModal">
+    <div class="modal palette-container">
+      <div class="palette-input-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input type="text" id="paletteSearchInput" class="palette-input" placeholder="Type a command or game name..." autocomplete="off">
+        <span style="font-size:0.72rem; color:var(--text-tertiary);"><kbd style="background:rgba(255,255,255,0.06); padding:2px 4px; border-radius:3px;">ESC</kbd> to exit</span>
+      </div>
+      <div class="palette-results" id="paletteResults"></div>
+    </div>
+  </div>
+
+  <!-- 2. Add Game Modal -->
+  <div class="modal-backdrop" id="addGameModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Add game to library</h2>
+        <button class="titlebar-btn close" data-close-modal>&times;</button>
+      </div>
+
+      <div style="display:flex; border-bottom:1px solid var(--border-subtle); padding:0 var(--space-lg);">
+        <button class="nav-item active" id="addGameTabProc" style="border-radius:0; padding:8px 14px; font-size:0.84rem;">From detected processes</button>
+        <button class="nav-item" id="addGameTabManual" style="border-radius:0; padding:8px 14px; font-size:0.84rem;">Manual executable</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Section A: From Processes -->
+        <div id="addGameSecProc">
+          <p style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:10px;">
+            Click <strong>+ Track</strong> on any running or recently seen game window:
+          </p>
+          <div id="addGameProcessesList" style="max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+
+        <!-- Section B: Manual File Flow -->
+        <div id="addGameSecManual" style="display:none;">
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">Game title <span style="color:var(--accent);">*</span></label>
+            <input type="text" id="addGameTitleInput" class="form-input" placeholder="e.g. Cyberpunk 2077" autocomplete="off">
+            <div id="addGameCoverStatus" style="font-size:0.72rem; color:var(--accent); min-height:16px;"></div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">Executable (.exe) path</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="addGamePathInput" class="form-input" placeholder="C:\Games\Game.exe" autocomplete="off">
+              <button class="btn btn-secondary" id="addGameBrowseBtn">Browse...</button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">Process name (without .exe)</label>
+            <input type="text" id="addGameProcInput" class="form-input" placeholder="e.g. Cyberpunk2077" autocomplete="off">
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">Cover art URL (optional)</label>
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <input type="text" id="addGameCoverInput" class="form-input" placeholder="https://..." style="flex:1;">
+              <div id="addGameCoverPreview" style="width:60px; height:80px; border-radius:4px; border:1px solid var(--border-subtle); background-size:cover; background-position:center; background-color:rgba(0,0,0,0.3); flex-shrink:0;"></div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="addGameSaveBtn" style="width:100%; margin-top:6px;">Track game</button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Change Art / Cover Picker Modal -->
+  <div class="modal-backdrop" id="artPickerModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Change cover art</h2>
+        <button class="titlebar-btn close" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Cover image URL</label>
+          <div style="display:flex; gap:12px;">
+            <input type="text" id="artPickerUrlInput" class="form-input" placeholder="https://..." style="flex:1;">
+            <div id="artPickerPreview" style="width:70px; height:95px; border-radius:4px; border:1px solid var(--border-subtle); background-size:cover; background-position:center; background-color:rgba(0,0,0,0.4); flex-shrink:0;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div class="form-label" style="margin-bottom:6px;">Suggested alternatives (click to select)</div>
+          <div id="artPickerResults" style="display:flex; flex-wrap:wrap; gap:8px; max-height:200px; overflow-y:auto;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal>Cancel</button>
+        <button class="btn btn-primary" id="artPickerSaveBtn">Save cover</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Edit Session Modal -->
+  <div class="modal-backdrop" id="editSessionModal">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Edit session record</h2>
+        <button class="titlebar-btn close" data-close-modal>&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editSessionId">
+
+        <div class="form-group">
+          <label class="form-label">Session start</label>
+          <input type="datetime-local" id="editSessionStart" class="form-input" step="1">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Session end</label>
+          <input type="datetime-local" id="editSessionEnd" class="form-input" step="1">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Total duration (minutes)</label>
+            <input type="number" id="editSessionTotalMins" class="form-input" min="0">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Idle / AFK time (minutes)</label>
+            <input type="number" id="editSessionIdleMins" class="form-input" min="0">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close-modal>Cancel</button>
+        <button class="btn btn-primary" id="saveSessionBtn">Save changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Main ES Module Application Boot -->
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>

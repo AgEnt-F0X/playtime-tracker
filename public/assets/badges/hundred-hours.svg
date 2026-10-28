@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+    <linearGradient id="crownGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <!-- Shield -->
+  <polygon points="32,4 58,16 52,48 32,60 12,48 6,16" fill="url(#goldGrad)" stroke="#fbbf24" stroke-width="2"/>
+  <!-- Crown -->
+  <polygon points="20,30 23,20 32,26 41,20 44,30 20,30" fill="url(#crownGrad)" stroke="#fef3c7" stroke-width="1.5"/>
+  <circle cx="23" cy="18" r="2" fill="#fef08a"/>
+  <circle cx="32" cy="24" r="2" fill="#fef08a"/>
+  <circle cx="41" cy="18" r="2" fill="#fef08a"/>
+  <!-- 100 Centered -->
+  <text x="32" y="44" fill="#ffffff" font-size="13" font-weight="900" font-family="sans-serif" text-anchor="middle" letter-spacing="-0.5">100</text>
+  <text x="32" y="52" fill="#fde68a" font-size="6" font-weight="bold" font-family="sans-serif" text-anchor="middle" letter-spacing="1">HOURS</text>
+</svg>

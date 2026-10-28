@@ -122,9 +122,27 @@ function initTabs() {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             btn.classList.add('active');
-            document.getElementById(`tab-${tab}`).classList.add('active');
+            const targetContent = document.getElementById(`tab-${tab}`);
+            if (targetContent) targetContent.classList.add('active');
+
+            if (tab === 'sessions' || tab === 'history' || btn.id === 'nav-sessions' || btn.id === 'nav-history') {
+                loadSessions();
+            }
         });
     });
+}
+
+async function loadSessions() {
+    try {
+        const res = await fetch('/api/sessions');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        sessions = await res.json();
+        renderSessions();
+    } catch (e) {
+        console.error('Failed to load sessions:', e);
+        sessions = [];
+        renderSessions();
+    }
 }
 
 // ── Data Fetching ─────────────────────────────────────
@@ -478,14 +496,22 @@ function renderSessions() {
     const empty = document.getElementById('sessionsEmpty');
     const badge = document.getElementById('sessionsCount');
 
-    badge.textContent = `${sessions.length} session${sessions.length !== 1 ? 's' : ''}`;
+    if (badge) {
+        badge.textContent = `${sessions.length} session${sessions.length !== 1 ? 's' : ''}`;
+    }
 
-    tbody.innerHTML = '';
-    if (!sessions.length) {
-        empty.style.display = 'flex';
+    if (tbody) tbody.innerHTML = '';
+    if (!sessions || !sessions.length) {
+        if (empty) {
+            empty.style.display = 'flex';
+            const msgEl = empty.querySelector('p');
+            if (msgEl) msgEl.textContent = 'No sessions found';
+        } else if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--text-dim);">No sessions found</td></tr>';
+        }
         return;
     }
-    empty.style.display = 'none';
+    if (empty) empty.style.display = 'none';
 
     sessions.slice(0, 200).forEach(s => {
         const game = games.find(g => g.id === s.gameId);

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="nightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <!-- Background Badge Shield -->
+  <polygon points="32,4 58,16 52,48 32,60 12,48 6,16" fill="url(#nightGrad)" stroke="#60a5fa" stroke-width="2"/>
+  <!-- Stars -->
+  <circle cx="20" cy="22" r="1.5" fill="#fef08a"/>
+  <circle cx="44" cy="24" r="1.5" fill="#fef08a"/>
+  <circle cx="48" cy="38" r="1.2" fill="#fef08a"/>
+  <!-- Crescent Moon with Game Headset -->
+  <path d="M36 18 A14 14 0 1 0 44 42 A18 18 0 1 1 36 18 Z" fill="#fde047" filter="url(#glow)"/>
+  <!-- Headphone Band & Cup -->
+  <path d="M22 28 C22 20 42 20 42 28" fill="none" stroke="#e0e7ff" stroke-width="3" stroke-linecap="round"/>
+  <rect x="18" y="27" width="5" height="10" rx="2" fill="#818cf8"/>
+  <rect x="39" y="27" width="5" height="10" rx="2" fill="#818cf8"/>
+</svg>

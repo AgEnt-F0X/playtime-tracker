@@ -1,6 +1,6 @@
 const express = require('express');
 const fs = require('fs/promises');
-const { existsSync, readdirSync, readFileSync, statSync } = require('fs');
+const { existsSync, readdirSync, readFileSync, statSync, openSync, readSync, closeSync } = require('fs');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 const os = require('os');
@@ -13,6 +13,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const dbDir = path.join(os.homedir(), '.playtime-tracker');
 const dbPath = path.join(dbDir, 'db.json');
+const artDir = path.join(dbDir, 'art');
 
 let db = { games: {}, sessions: [], recentProcesses: [], dismissed: [], settings: {} };
 
@@ -21,6 +22,9 @@ let db = { games: {}, sessions: [], recentProcesses: [], dismissed: [], settings
 async function initDb() {
     if (!existsSync(dbDir)) {
         await fs.mkdir(dbDir, { recursive: true });
+    }
+    if (!existsSync(artDir)) {
+        await fs.mkdir(artDir, { recursive: true });
     }
     if (existsSync(dbPath)) {
         try {
@@ -318,12 +322,17 @@ $results | ConvertTo-Json -Compress
 // ─── Cover Art Fetching ────────────────────────────────────────────────────
 
 async function fetchCoverUrl(gameName, steamAppId) {
-    // If we have a Steam AppID, try the portrait capsule first, then header
+    // If we have a Steam AppID, try the portrait capsules first, then header
     if (steamAppId) {
-        const portrait = `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/library_600x900_2x.jpg`;
+        const portrait2x = `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/library_600x900_2x.jpg`;
+        const portrait1x = `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/library_600x900.jpg`;
         try {
-            const res = await fetch(portrait, { method: 'HEAD' });
-            if (res.ok) return portrait;
+            const res = await fetch(portrait2x, { method: 'HEAD' });
+            if (res.ok) return portrait2x;
+        } catch {}
+        try {
+            const res1 = await fetch(portrait1x, { method: 'HEAD' });
+            if (res1.ok) return portrait1x;
         } catch {}
         // Fallback to header (available for nearly all Steam games)
         return `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`;
@@ -338,14 +347,45 @@ async function fetchCoverUrl(gameName, steamAppId) {
         if (data && data.items && data.items.length > 0) {
             const appId = data.items[0].id;
             // Try portrait first
-            const portrait = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_600x900_2x.jpg`;
+            const portrait2x = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_600x900_2x.jpg`;
+            const portrait1x = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`;
             try {
-                const headRes = await fetch(portrait, { method: 'HEAD' });
-                if (headRes.ok) return portrait;
+                const headRes = await fetch(portrait2x, { method: 'HEAD' });
+                if (headRes.ok) return portrait2x;
+            } catch {}
+            try {
+                const headRes1 = await fetch(portrait1x, { method: 'HEAD' });
+                if (headRes1.ok) return portrait1x;
             } catch {}
             return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`;
         }
     } catch {}
+
+    // Steam didn't find cover — fallback to SteamGridDB if key configured
+    const sgdbKey = db.settings && db.settings.steamGridDbKey ? db.settings.steamGridDbKey.trim() : null;
+    if (sgdbKey && gameName) {
+        try {
+            const _fetch = typeof fetch === 'function' ? fetch : (await import('node-fetch')).default;
+            const sr = await _fetch(`https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(gameName)}`, {
+                headers: { 'Authorization': `Bearer ${sgdbKey}` }
+            });
+            if (sr.ok) {
+                const sd = await sr.json();
+                if (sd.success && sd.data && sd.data.length > 0) {
+                    const gameId = sd.data[0].id;
+                    const gr = await _fetch(`https://www.steamgriddb.com/api/v2/grids/game/${gameId}?dimensions=600x900`, {
+                        headers: { 'Authorization': `Bearer ${sgdbKey}` }
+                    });
+                    if (gr.ok) {
+                        const gd = await gr.json();
+                        if (gd.success && gd.data && gd.data.length > 0 && gd.data[0].url) {
+                            return gd.data[0].url;
+                        }
+                    }
+                }
+            }
+        } catch (e) {}
+    }
 
     return '';
 }
@@ -491,15 +531,304 @@ app.get('/api/processes', (req, res) => {
 });
 
 
-// Cover art search via Steam — with portrait-first, header fallback
+function isValidCachedImage(filePath) {
+    if (!existsSync(filePath)) return false;
+    try {
+        const stat = statSync(filePath);
+        if (stat.size < 100) return false;
+        const buf = Buffer.alloc(16);
+        const fd = openSync(filePath, 'r');
+        readSync(fd, buf, 0, 16, 0);
+        closeSync(fd);
+        // JPEG magic bytes (FF D8 FF)
+        const isJpg = buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+        // PNG magic bytes (89 50 4E 47)
+        const isPng = buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+        // WEBP magic bytes (RIFF .... WEBP)
+        const isWebp = buf.slice(0, 4).toString() === 'RIFF' && buf.slice(8, 12).toString() === 'WEBP';
+        // HTML error check
+        const textPrefix = buf.toString('utf8').trim().toLowerCase();
+        if (textPrefix.startsWith('<!doc') || textPrefix.startsWith('<html') || textPrefix.startsWith('<?xml')) {
+            return false;
+        }
+        return isJpg || isPng || isWebp;
+    } catch {
+        return false;
+    }
+}
+
+async function downloadAndCacheArt(url, targetPath) {
+    try {
+        const _fetch = typeof fetch === 'function' ? fetch : (await import('node-fetch')).default;
+        const res = await _fetch(url, { method: 'GET' });
+        if (!res.ok) return false;
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.toLowerCase().includes('text/html')) return false;
+
+        const arrayBuffer = await res.arrayBuffer();
+        const buf = Buffer.from(arrayBuffer);
+        if (buf.length < 100) return false;
+
+        const textPrefix = buf.slice(0, 30).toString('utf8').trim().toLowerCase();
+        if (textPrefix.startsWith('<!doc') || textPrefix.startsWith('<html') || textPrefix.startsWith('<?xml')) {
+            return false;
+        }
+
+        await fs.writeFile(targetPath, buf);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// ─── Art Cache & Lookup Endpoints ─────────────────────────────────────────
+
+app.get('/api/art/:gameId', async (req, res) => {
+    const { gameId } = req.params;
+    const type = req.query.type || 'cover'; // 'hero' | 'logo' | 'cover'
+    const game = db.games[gameId];
+    if (!game) return res.status(404).json({ error: 'Game not found' });
+
+    const ext = type === 'logo' ? 'png' : 'jpg';
+    const cachedFile = path.join(artDir, `${gameId}_${type}.${ext}`);
+    if (existsSync(cachedFile)) {
+        if (isValidCachedImage(cachedFile)) {
+            return res.sendFile(cachedFile);
+        }
+        // Corrupt/zero-byte cached file: delete and refetch
+        try { await fs.unlink(cachedFile).catch(() => {}); } catch {}
+    }
+
+    let appId = null;
+    if (gameId.toLowerCase().startsWith('auto_steam_')) {
+        appId = gameId.replace(/^auto_steam_/i, '');
+    } else if (game.coverUrl) {
+        const m = game.coverUrl.match(/\/apps\/(\d+)\//);
+        if (m) appId = m[1];
+    }
+
+    const candidateUrls = [];
+    if (appId) {
+        if (type === 'hero') {
+            candidateUrls.push(`https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_hero.jpg`);
+            candidateUrls.push(`https://steamcdn-a.akamaihd.net/steam/apps/${appId}/library_hero.jpg`);
+            candidateUrls.push(`https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`);
+        } else if (type === 'logo') {
+            candidateUrls.push(`https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/logo.png`);
+            candidateUrls.push(`https://steamcdn-a.akamaihd.net/steam/apps/${appId}/logo.png`);
+        } else {
+            if (game.coverUrl) candidateUrls.push(game.coverUrl);
+            candidateUrls.push(`https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_600x900_2x.jpg`);
+            candidateUrls.push(`https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`);
+            candidateUrls.push(`https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`);
+        }
+    } else {
+        if (type === 'cover' && game.coverUrl) {
+            candidateUrls.push(game.coverUrl);
+        }
+    }
+
+    const sgdbKey = db.settings && db.settings.steamGridDbKey ? db.settings.steamGridDbKey.trim() : null;
+    if (sgdbKey) {
+        try {
+            const _fetch = typeof fetch === 'function' ? fetch : (await import('node-fetch')).default;
+            let sgdbGameId = null;
+            if (appId) {
+                const r = await _fetch(`https://www.steamgriddb.com/api/v2/games/steam/${appId}`, {
+                    headers: { 'Authorization': `Bearer ${sgdbKey}` }
+                });
+                if (r.ok) {
+                    const d = await r.json();
+                    if (d.success && d.data) sgdbGameId = d.data.id;
+                }
+            }
+            if (!sgdbGameId && game.name) {
+                const r = await _fetch(`https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(game.name)}`, {
+                    headers: { 'Authorization': `Bearer ${sgdbKey}` }
+                });
+                if (r.ok) {
+                    const d = await r.json();
+                    if (d.success && d.data && d.data.length > 0) sgdbGameId = d.data[0].id;
+                }
+            }
+            if (sgdbGameId) {
+                const endpointMap = {
+                    hero: `https://www.steamgriddb.com/api/v2/heroes/game/${sgdbGameId}`,
+                    logo: `https://www.steamgriddb.com/api/v2/logos/game/${sgdbGameId}`,
+                    cover: `https://www.steamgriddb.com/api/v2/grids/game/${sgdbGameId}?dimensions=600x900`
+                };
+                const sgdbEndpoint = endpointMap[type] || endpointMap.cover;
+                const r = await _fetch(sgdbEndpoint, {
+                    headers: { 'Authorization': `Bearer ${sgdbKey}` }
+                });
+                if (r.ok) {
+                    const d = await r.json();
+                    if (d.success && d.data && d.data.length > 0 && d.data[0].url) {
+                        candidateUrls.push(d.data[0].url);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('SGDB art error:', e.message);
+        }
+    }
+
+    for (const url of candidateUrls) {
+        const success = await downloadAndCacheArt(url, cachedFile);
+        if (success && isValidCachedImage(cachedFile)) {
+            return res.sendFile(cachedFile);
+        }
+    }
+
+    if (type === 'cover' && game.coverUrl) {
+        return res.redirect(game.coverUrl);
+    }
+
+    return res.status(404).json({ error: 'Art not found' });
+});
+
+app.delete('/api/art/cache', async (req, res) => {
+    try {
+        if (existsSync(artDir)) {
+            const files = readdirSync(artDir);
+            for (const file of files) {
+                await fs.unlink(path.join(artDir, file)).catch(() => {});
+            }
+        }
+        res.json({ success: true, message: 'Art cache cleared' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/art/clear-cache', async (req, res) => {
+    try {
+        if (existsSync(artDir)) {
+            const files = readdirSync(artDir);
+            for (const file of files) {
+                await fs.unlink(path.join(artDir, file)).catch(() => {});
+            }
+        }
+        res.json({ success: true, message: 'Art cache cleared' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/steamgriddb/test', async (req, res) => {
+    let key = (req.body && req.body.key !== undefined) ? req.body.key : (db.settings && db.settings.steamGridDbKey);
+    key = typeof key === 'string' ? key.trim() : '';
+
+    if (!key) {
+        return res.json({ ok: false, status: 400, message: 'No API key provided. Please enter a SteamGridDB API key.' });
+    }
+
+    try {
+        const _fetch = typeof fetch === 'function' ? fetch : (await import('node-fetch')).default;
+        // Test against known game: The Witcher 3 (Steam AppID 292030) with 8s timeout
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+
+        let response;
+        try {
+            response = await _fetch('https://www.steamgriddb.com/api/v2/games/steam/292030', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${key}` },
+                signal: controller.signal
+            });
+        } finally {
+            clearTimeout(timeout);
+        }
+
+        if (response.status === 200) {
+            const data = await response.json();
+            if (data && data.success) {
+                return res.json({ ok: true, status: 200, message: 'Valid API key! Successfully connected to SteamGridDB.' });
+            } else {
+                const errMsg = data && data.errors ? data.errors.join(', ') : 'Unknown response';
+                return res.json({ ok: false, status: response.status, message: `SteamGridDB error: ${errMsg}` });
+            }
+        } else if (response.status === 401 || response.status === 403) {
+            return res.json({ ok: false, status: 401, message: 'Invalid API key (401 Unauthorized). Please check your key on steamgriddb.com.' });
+        } else {
+            return res.json({ ok: false, status: response.status, message: `SteamGridDB returned HTTP ${response.status} (${response.statusText})` });
+        }
+    } catch (e) {
+        return res.json({ ok: false, status: 500, message: `Network error connecting to SteamGridDB: ${e.message}` });
+    }
+});
+
+app.get('/api/steamgriddb/search', async (req, res) => {
+    const term = req.query.term || req.query.q;
+    const sgdbKey = db.settings && db.settings.steamGridDbKey ? db.settings.steamGridDbKey.trim() : null;
+    if (!term) return res.json({ results: [] });
+    if (!sgdbKey) return res.json({ results: [], message: 'SteamGridDB key not set' });
+
+    try {
+        const _fetch = typeof fetch === 'function' ? fetch : (await import('node-fetch')).default;
+        const r = await _fetch(`https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(term)}`, {
+            headers: { 'Authorization': `Bearer ${sgdbKey}` }
+        });
+        if (!r.ok) return res.json({ results: [] });
+        const d = await r.json();
+        if (!d.success || !d.data) return res.json({ results: [] });
+
+        const results = [];
+        for (const item of d.data.slice(0, 4)) {
+            const gRes = await _fetch(`https://www.steamgriddb.com/api/v2/grids/game/${item.id}?dimensions=600x900`, {
+                headers: { 'Authorization': `Bearer ${sgdbKey}` }
+            });
+            let grids = [];
+            if (gRes.ok) {
+                const gd = await gRes.json();
+                if (gd.success && gd.data) grids = gd.data.slice(0, 4).map(g => g.url);
+            }
+            results.push({ id: item.id, name: item.name, grids });
+        }
+        res.json({ results });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Cover art search via Steam + SteamGridDB
 app.get('/api/cover-search', async (req, res) => {
-    const term = req.query.q;
-    if (!term) return res.json({ coverUrl: null });
+    const term = req.query.term || req.query.q;
+    if (!term) return res.json({ coverUrl: null, results: [] });
     try {
         const coverUrl = await fetchCoverUrl(term);
-        return res.json({ coverUrl: coverUrl || null });
+        const results = coverUrl ? [{ url: coverUrl, source: 'Steam' }] : [];
+
+        const sgdbKey = db.settings && db.settings.steamGridDbKey ? db.settings.steamGridDbKey.trim() : null;
+        if (sgdbKey) {
+            try {
+                const _fetch = typeof fetch === 'function' ? fetch : (await import('node-fetch')).default;
+                const sr = await _fetch(`https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(term)}`, {
+                    headers: { 'Authorization': `Bearer ${sgdbKey}` }
+                });
+                if (sr.ok) {
+                    const sd = await sr.json();
+                    if (sd.success && sd.data && sd.data.length > 0) {
+                        const gameId = sd.data[0].id;
+                        const gr = await _fetch(`https://www.steamgriddb.com/api/v2/grids/game/${gameId}?dimensions=600x900`, {
+                            headers: { 'Authorization': `Bearer ${sgdbKey}` }
+                        });
+                        if (gr.ok) {
+                            const gd = await gr.json();
+                            if (gd.success && gd.data) {
+                                for (const grid of gd.data.slice(0, 4)) {
+                                    if (grid.url) results.push({ url: grid.url, source: 'SteamGridDB' });
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (err) {}
+        }
+
+        return res.json({ coverUrl: coverUrl || (results[0] ? results[0].url : null), results });
     } catch (e) {
-        res.json({ coverUrl: null });
+        res.json({ coverUrl: null, results: [] });
     }
 });
 
@@ -625,7 +954,7 @@ app.post('/api/sync/steam', async (req, res) => {
     
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`http://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${steamApiKey}&steamid=${steamId}&include_played_free_games=1`);
+        const response = await fetch(`https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${steamApiKey}&steamid=${steamId}&include_played_free_games=1`);
         if (!response.ok) throw new Error('Failed to fetch from Steam API');
         const data = await response.json();
         
@@ -819,8 +1148,11 @@ async function endSession() {
             activeTime,
             idleTime
         });
+        const countAfk = Boolean(db.settings && db.settings.countAfkAsPlaytime);
+        const playTimeToAdd = countAfk ? duration : activeTime;
+
         if (db.games[activeSession.gameId]) {
-            db.games[activeSession.gameId].totalPlayTime += duration;
+            db.games[activeSession.gameId].totalPlayTime += playTimeToAdd;
             db.games[activeSession.gameId].lastPlayed = new Date().toISOString();
         }
         await saveDb();
@@ -892,8 +1224,8 @@ function startTracker() {
 
 async function startServer() {
     await initDb();
-    return new Promise((resolve) => {
-        app.listen(PORT, '127.0.0.1', async () => {
+    return new Promise((resolve, reject) => {
+        const server = app.listen(PORT, '127.0.0.1', async () => {
             console.log(`Backend running on http://localhost:${PORT}`);
             startTracker();
 
@@ -905,6 +1237,15 @@ async function startServer() {
             }
 
             resolve();
+        });
+
+        server.on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.warn(`Port ${PORT} is already in use by another instance.`);
+                resolve();
+            } else {
+                reject(err);
+            }
         });
     });
 }

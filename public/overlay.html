@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlayTime Mini Overlay</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    @font-face {
+      font-family: 'Press Start 2P';
+      src: url('/fonts/press-start-2p-400.ttf') format('truetype');
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Inter';
+      src: url('/fonts/inter-600.ttf') format('truetype');
+      font-weight: 600;
+      font-display: swap;
+    }
+    body {
+      background: transparent;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 4px;
+    }
+    .overlay-card {
+      -webkit-app-region: drag;
+      width: 100%;
+      height: 100%;
+      background: rgba(14, 16, 26, 0.90);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+      position: relative;
+    }
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .game-name {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #f1f3f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+    .close-btn {
+      -webkit-app-region: no-drag;
+      background: transparent;
+      border: none;
+      color: #8888aa;
+      font-size: 14px;
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+    .bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .timer {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.72rem;
+      color: #10b981;
+      letter-spacing: -0.5px;
+    }
+    .status-badge {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .status-badge.afk {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+    .status-badge.idle {
+      background: rgba(100, 116, 139, 0.2);
+      color: #94a3b8;
+      border-color: rgba(100, 116, 139, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay-card">
+    <div class="top-row">
+      <div class="game-name" id="gameName">PlayTime Tracker</div>
+      <button class="close-btn" id="closeBtn" title="Close Overlay">&times;</button>
+    </div>
+    <div class="bottom-row">
+      <div class="timer" id="timer">00:00:00</div>
+      <div class="status-badge" id="statusBadge">Active</div>
+    </div>
+  </div>
+
+  <script>
+    function fmtTime(ms) {
+      if (!ms || ms < 0) ms = 0;
+      const totalSec = Math.floor(ms / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    const gameNameEl = document.getElementById('gameName');
+    const timerEl = document.getElementById('timer');
+    const statusBadgeEl = document.getElementById('statusBadge');
+    const closeBtn = document.getElementById('closeBtn');
+
+    closeBtn.addEventListener('click', () => {
+      if (window.electronAPI && window.electronAPI.closeMiniOverlay) {
+        window.electronAPI.closeMiniOverlay();
+      } else {
+        window.close();
+      }
+    });
+
+    if (window.electronAPI && window.electronAPI.onUpdateOverlayData) {
+      window.electronAPI.onUpdateOverlayData((data) => {
+        if (!data || !data.active) {
+          gameNameEl.textContent = 'No Game Active';
+          timerEl.textContent = '00:00:00';
+          statusBadgeEl.textContent = 'Standby';
+          statusBadgeEl.className = 'status-badge idle';
+          return;
+        }
+        gameNameEl.textContent = data.gameName || 'Active Game';
+        timerEl.textContent = fmtTime(data.activeTime || data.elapsed || 0);
+
+        if (data.isIdle || data.isManualAfk) {
+          statusBadgeEl.textContent = data.isManualAfk ? 'Manual AFK' : 'Auto Idle';
+          statusBadgeEl.className = 'status-badge afk';
+        } else {
+          statusBadgeEl.textContent = 'Playing';
+          statusBadgeEl.className = 'status-badge';
+        }
+      });
+    }
+
+    // Fallback polling if running directly in browser
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/active-session');
+        const data = await res.json();
+        if (!data) {
+          gameNameEl.textContent = 'No Game Active';
+          timerEl.textContent = '00:00:00';
+          statusBadgeEl.textContent = 'Standby';
+          statusBadgeEl.className = 'status-badge idle';
+        } else {
+          gameNameEl.textContent = data.gameName || 'Active Game';
+          timerEl.textContent = fmtTime(data.activeTime || data.elapsed || 0);
+          if (data.isIdle || data.isManualAfk) {
+            statusBadgeEl.textContent = data.isManualAfk ? 'Manual AFK' : 'Auto Idle';
+            statusBadgeEl.className = 'status-badge afk';
+          } else {
+            statusBadgeEl.textContent = 'Playing';
+            statusBadgeEl.className = 'status-badge';
+          }
+        }
+      } catch (e) {}
+    }
+    setInterval(pollStatus, 1000);
+    pollStatus();
+  </script>
+</body>
+</html>

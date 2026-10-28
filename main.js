@@ -3,15 +3,12 @@ const path = require('path');
 const { startServer } = require('./server');
 
 let mainWindow;
+let overlayWindow = null;
 let tray;
 let isAfk = false;
 
 // ─── Create Tray Icons (Programmatic) ─────────────────
 function createTrayIcon(color) {
-    // Create a 16x16 icon programmatically
-    const canvas = nativeImage.createEmpty();
-    // We'll use simple colored PNG data inline
-    // Green = playing, Yellow = AFK
     const size = 16;
     const img = nativeImage.createFromBuffer(
         createColoredIcon(color === 'green' ? [16, 185, 129] : [250, 204, 21]),
@@ -26,23 +23,21 @@ function createColoredIcon(rgb) {
     for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
             const idx = (y * size + x) * 4;
-            // Draw a circle
             const cx = 7.5, cy = 7.5, r = 6;
             const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
             if (dist <= r) {
-                buf[idx] = rgb[0];     // R
-                buf[idx + 1] = rgb[1]; // G
-                buf[idx + 2] = rgb[2]; // B
-                buf[idx + 3] = 255;    // A
+                buf[idx] = rgb[0];
+                buf[idx + 1] = rgb[1];
+                buf[idx + 2] = rgb[2];
+                buf[idx + 3] = 255;
             } else if (dist <= r + 1) {
-                // Anti-aliased edge
                 const alpha = Math.max(0, Math.min(255, Math.round((r + 1 - dist) * 255)));
                 buf[idx] = rgb[0];
                 buf[idx + 1] = rgb[1];
                 buf[idx + 2] = rgb[2];
                 buf[idx + 3] = alpha;
             } else {
-                buf[idx + 3] = 0; // Transparent
+                buf[idx + 3] = 0;
             }
         }
     }
@@ -60,6 +55,10 @@ function updateTray() {
             label: isAfk ? '▶ Resume Playing' : '⏸ Set AFK',
             click: () => toggleAfk()
         },
+        { 
+            label: 'Toggle Mini Overlay',
+            click: () => toggleOverlayWindow()
+        },
         { type: 'separator' },
         { label: 'Show Window', click: () => { 
             if (!mainWindow || mainWindow.isDestroyed()) {
@@ -72,6 +71,9 @@ function updateTray() {
         { type: 'separator' },
         { label: 'Quit PlayTime Tracker', click: () => {
             app.isQuitting = true;
+            if (overlayWindow && !overlayWindow.isDestroyed()) {
+                overlayWindow.destroy();
+            }
             app.quit();
         }}
     ]);
@@ -86,6 +88,9 @@ function toggleAfk() {
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('afk-status-changed', isAfk);
     }
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+        overlayWindow.webContents.send('afk-status-changed', isAfk);
+    }
     
     console.log(isAfk ? '⏸ Manual AFK activated' : '▶ Manual AFK deactivated');
 }
@@ -99,16 +104,17 @@ function createWindow() {
     }
 
     mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 750,
-        minWidth: 900,
-        minHeight: 600,
+        width: 1280,
+        height: 800,
+        minWidth: 960,
+        minHeight: 640,
         frame: false,
         titleBarStyle: 'hidden',
-        backgroundColor: '#0d0f14',
+        backgroundColor: '#080810',
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
+            sandbox: true,
             preload: path.join(__dirname, 'preload.js')
         },
         show: false
@@ -137,29 +143,93 @@ function createWindow() {
     });
 }
 
-// ─── App Ready ───────────────────────────────────────
-app.whenReady().then(async () => {
-    await startServer();
-    createWindow();
+function createOverlayWindow() {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+        overlayWindow.show();
+        overlayWindow.focus();
+        return;
+    }
+    overlayWindow = new BrowserWindow({
+        width: 250,
+        height: 90,
+        frame: false,
+        transparent: true,
+        alwaysOnTop: true,
+        resizable: false,
+        skipTaskbar: true,
+        backgroundColor: '#00000000',
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
+            preload: path.join(__dirname, 'preload.js')
+        }
+    });
 
-    // ── System Tray ──
-    const icon = createTrayIcon('green');
-    tray = new Tray(icon);
-    updateTray();
-    
-    tray.on('click', () => {
+    overlayWindow.loadURL('http://localhost:3000/overlay.html');
+
+    overlayWindow.on('closed', () => {
+        overlayWindow = null;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('mini-overlay-closed');
+        }
+    });
+}
+
+function closeOverlayWindow() {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+        overlayWindow.close();
+    }
+    overlayWindow = null;
+}
+
+function toggleOverlayWindow() {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+        closeOverlayWindow();
+    } else {
+        createOverlayWindow();
+    }
+}
+
+// ─── Single Instance Lock ─────────────────────────────
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+    app.quit();
+} else {
+    app.on('second-instance', () => {
         createWindow();
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+        }
     });
 
-    // ── Global Hotkey: Ctrl+Shift+F9 to toggle AFK ──
-    globalShortcut.register('Ctrl+Shift+F9', () => {
-        toggleAfk();
+    // ─── App Ready ───────────────────────────────────────
+    app.whenReady().then(async () => {
+        await startServer();
+        createWindow();
+
+        // ── System Tray ──
+        const icon = createTrayIcon('green');
+        tray = new Tray(icon);
+        updateTray();
+        
+        tray.on('click', () => {
+            createWindow();
+        });
+
+        // ── Global Hotkey: Ctrl+Shift+F9 to toggle AFK ──
+        globalShortcut.register('Ctrl+Shift+F9', () => {
+            toggleAfk();
+        });
     });
-});
+}
 
 // ── IPC Handlers ────────────────────────────────────
 ipcMain.handle('open-file-dialog', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const targetWin = (mainWindow && !mainWindow.isDestroyed()) ? mainWindow : null;
+    const result = await dialog.showOpenDialog(targetWin, {
         title: 'Select Game Executable',
         filters: [
             { name: 'Executables', extensions: ['exe'] },
@@ -175,14 +245,24 @@ ipcMain.handle('get-afk-status', () => isAfk);
 ipcMain.on('toggle-afk', () => toggleAfk());
 
 // Window controls
-ipcMain.on('window-minimize', () => mainWindow && mainWindow.minimize());
+ipcMain.on('window-minimize', () => mainWindow && !mainWindow.isDestroyed() && mainWindow.minimize());
 ipcMain.on('window-maximize', () => {
-    if (!mainWindow) return;
+    if (!mainWindow || mainWindow.isDestroyed()) return;
     mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
 });
 ipcMain.on('window-close', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.close(); // Triggers the 'close' event handler which destroys it
+        mainWindow.close();
+    }
+});
+
+// Mini overlay controls
+ipcMain.on('open-mini-overlay', () => createOverlayWindow());
+ipcMain.on('close-mini-overlay', () => closeOverlayWindow());
+ipcMain.on('toggle-mini-overlay', () => toggleOverlayWindow());
+ipcMain.on('update-overlay-data', (event, data) => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+        overlayWindow.webContents.send('update-overlay-data', data);
     }
 });
 
@@ -190,7 +270,6 @@ app.on('will-quit', () => {
     globalShortcut.unregisterAll();
 });
 
-// Don't quit when all windows are closed — we live in the tray
 app.on('window-all-closed', () => {
-    // intentionally empty — app stays alive in system tray
+    // App stays alive in system tray
 });
