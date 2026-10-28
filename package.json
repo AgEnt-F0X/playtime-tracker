@@ -2,14 +2,53 @@
   "name": "playtime-tracker",
   "version": "1.1.0",
   "description": "Premium lightweight game tracker for Windows",
+  "productName": "PlayTime Tracker",
+  "author": "AgEnt-F0X",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
   },
   "dependencies": {
     "express": "^4.19.2"
   },
   "devDependencies": {
-    "electron": "^36.0.0"
+    "electron": "^36.0.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.agentfox.playtimetracker",
+    "productName": "PlayTime Tracker",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "server.js",
+      "public/**/*"
+    ],
+    "extraResources": [
+      "tracker.exe"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PlayTime Tracker",
+      "uninstallDisplayName": "PlayTime Tracker"
+    }
   }
 }

@@ -1181,10 +1181,23 @@ app.get('/api/active-session', (req, res) => {
 
 // ─── Tracker Process ───────────────────────────────────────────────────────
 
+function getTrackerPath() {
+    const candidates = [
+        path.join(__dirname, 'tracker.exe'),
+        path.join(process.resourcesPath || '', 'tracker.exe'),
+        path.join(process.resourcesPath || '', 'app.asar.unpacked', 'tracker.exe'),
+        path.join(__dirname, '..', 'tracker.exe')
+    ];
+    for (const p of candidates) {
+        if (p && existsSync(p)) return p;
+    }
+    return path.join(__dirname, 'tracker.exe');
+}
+
 function startTracker() {
-    const trackerPath = path.join(__dirname, 'tracker.exe');
+    const trackerPath = getTrackerPath();
     if (!existsSync(trackerPath)) {
-        console.error('tracker.exe not found!');
+        console.error('tracker.exe not found at:', trackerPath);
         return;
     }
     const child = spawn(trackerPath, [], { stdio: ['ignore', 'pipe', 'pipe'] });
