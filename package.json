@@ -1,6 +1,6 @@
 {
   "name": "playtime-tracker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Premium lightweight game tracker for Windows",
   "main": "main.js",
   "scripts": {

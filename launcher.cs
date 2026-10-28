@@ -2,6 +2,19 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
+using System.Reflection;
+
+[assembly: AssemblyTitle("PlayTime Tracker")]
+[assembly: AssemblyDescription("PlayTime Tracker - Premium Game Activity & Session Tracker")]
+[assembly: AssemblyConfiguration("")]
+[assembly: AssemblyCompany("PlayTime Tracker")]
+[assembly: AssemblyProduct("PlayTime Tracker")]
+[assembly: AssemblyCopyright("Copyright © 2026")]
+[assembly: AssemblyTrademark("")]
+[assembly: AssemblyCulture("")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyInformationalVersion("1.1")]
 
 class Program
 {

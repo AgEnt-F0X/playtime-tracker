@@ -3,6 +3,16 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using System.Reflection;
+
+[assembly: AssemblyTitle("PlayTime Tracker Native Monitor")]
+[assembly: AssemblyDescription("PlayTime Tracker Foreground & AFK Monitor")]
+[assembly: AssemblyCompany("PlayTime Tracker")]
+[assembly: AssemblyProduct("PlayTime Tracker")]
+[assembly: AssemblyCopyright("Copyright © 2026")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyInformationalVersion("1.1")]
 
 class ActiveTracker {
     [DllImport("user32.dll")]
